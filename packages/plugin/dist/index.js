@@ -46,6 +46,8 @@ var oauthAuthCodesCollection = {
   // Server-managed — opt out of document-locking so no FK column is added to
   // payload_locked_documents_rels (avoids the SQLite push rebuild bug; see clients.ts).
   lockDocuments: false,
+  // Payload 4 defaults versions: true; these tables are ephemeral server state.
+  versions: false,
   admin: {
     hidden: true
   },
@@ -144,6 +146,8 @@ var oauthClientsCollection = {
   // added to an already-pushed DB. (Payload uses this same opt-out for its own
   // system collections.)
   lockDocuments: false,
+  // Payload 4 defaults versions: true; clients are not versioned content.
+  versions: false,
   admin: {
     useAsTitle: "clientName",
     group: "MCP",
@@ -278,6 +282,8 @@ var oauthCsrfNoncesCollection = {
   // Server-managed — opt out of document-locking so no FK column is added to
   // payload_locked_documents_rels (avoids the SQLite push rebuild bug; see clients.ts).
   lockDocuments: false,
+  // Payload 4 defaults versions: true; nonces are ephemeral.
+  versions: false,
   admin: { hidden: true },
   access: {
     create: denyPublicAccess3,
@@ -285,6 +291,7 @@ var oauthCsrfNoncesCollection = {
     update: denyPublicAccess3,
     delete: denyPublicAccess3
   },
+  timestamps: false,
   hooks: {
     afterChange: [sweepExpiredNonces]
   },
@@ -357,6 +364,8 @@ var oauthTokensCollection = {
   // Server-managed — opt out of document-locking so no FK column is added to
   // payload_locked_documents_rels (avoids the SQLite push rebuild bug; see clients.ts).
   lockDocuments: false,
+  // Payload 4 defaults versions: true; token rows are not versioned documents.
+  versions: false,
   admin: {
     group: "MCP",
     useAsTitle: "clientId",

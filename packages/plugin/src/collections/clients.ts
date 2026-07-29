@@ -21,6 +21,8 @@ export const oauthClientsCollection: CollectionConfig = {
   // added to an already-pushed DB. (Payload uses this same opt-out for its own
   // system collections.)
   lockDocuments: false,
+  // Payload 4 defaults versions: true; clients are not versioned content.
+  versions: false,
   admin: {
     useAsTitle: 'clientName',
     group: 'MCP',

@@ -50,6 +50,8 @@ export const oauthTokensCollection: CollectionConfig = {
   // Server-managed — opt out of document-locking so no FK column is added to
   // payload_locked_documents_rels (avoids the SQLite push rebuild bug; see clients.ts).
   lockDocuments: false,
+  // Payload 4 defaults versions: true; token rows are not versioned documents.
+  versions: false,
   admin: {
     group: 'MCP',
     useAsTitle: 'clientId',

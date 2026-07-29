@@ -51,6 +51,8 @@ export const oauthAuthCodesCollection: CollectionConfig = {
   // Server-managed — opt out of document-locking so no FK column is added to
   // payload_locked_documents_rels (avoids the SQLite push rebuild bug; see clients.ts).
   lockDocuments: false,
+  // Payload 4 defaults versions: true; these tables are ephemeral server state.
+  versions: false,
   admin: {
     hidden: true,
   },

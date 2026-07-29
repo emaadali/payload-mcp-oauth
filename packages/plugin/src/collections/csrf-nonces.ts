@@ -31,6 +31,8 @@ export const oauthCsrfNoncesCollection: CollectionConfig = {
   // Server-managed — opt out of document-locking so no FK column is added to
   // payload_locked_documents_rels (avoids the SQLite push rebuild bug; see clients.ts).
   lockDocuments: false,
+  // Payload 4 defaults versions: true; nonces are ephemeral.
+  versions: false,
   admin: { hidden: true },
   access: {
     create: denyPublicAccess,
@@ -38,6 +40,7 @@ export const oauthCsrfNoncesCollection: CollectionConfig = {
     update: denyPublicAccess,
     delete: denyPublicAccess,
   },
+  timestamps: false,
   hooks: {
     afterChange: [sweepExpiredNonces],
   },
