@@ -7,7 +7,7 @@ import { hashToken } from '../../../src/lib/token-storage.js'
 process.env['PMOAUTH_TOKEN_PEPPER'] = 'test-pepper-32-chars-minimum-length!!'
 
 const MCP_OPTIONS: MCPPluginConfig = {
-  collections: { posts: { enabled: true } },
+  collections: { posts: {} },
 }
 
 // RFC 7636 §Appendix B test vector (43 chars of the unreserved set)

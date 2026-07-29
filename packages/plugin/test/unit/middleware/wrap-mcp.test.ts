@@ -1,12 +1,38 @@
-import { describe, expect, it, vi } from 'vitest'
-import { installOverrideAuth, wrapMcpEndpointHandler } from '../../../src/middleware/wrap-mcp.js'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { installOverrideGetAuthorizedMCP, wrapMcpEndpointHandler } from '../../../src/middleware/wrap-mcp.js'
 import { OAuthInvalidTokenError } from '../../../src/types.js'
 import { UnauthorizedError } from 'payload'
+import type { SanitizedMCPPluginConfig } from '@payloadcms/plugin-mcp'
+
+type MCPItem = SanitizedMCPPluginConfig['items'][number]
 
 process.env['PMOAUTH_TOKEN_PEPPER'] = 'test-pepper-32-chars-minimum-length!!'
 
 const TEST_ISSUER = 'https://example.com'
 const TEST_PRM_URL = `${TEST_ISSUER}/.well-known/oauth-protected-resource`
+
+const ALL_ITEMS = [
+  {
+    type: 'collectionTool',
+    collectionSlug: 'posts',
+    configKey: 'find',
+    mcpName: 'findDocuments',
+    label: 'find',
+    tool: { access: () => true },
+  },
+  {
+    type: 'collectionTool',
+    collectionSlug: 'posts',
+    configKey: 'create',
+    mcpName: 'createDocuments',
+    label: 'create',
+    tool: { access: () => true },
+  },
+] as MCPItem[]
+
+vi.mock('@payloadcms/plugin-mcp/internal', () => ({
+  filterMCPItems: vi.fn(async ({ items }: { items: MCPItem[] }) => items),
+}))
 
 describe('wrapMcpEndpointHandler', () => {
   it('calls the original handler and returns its response', async () => {
@@ -78,69 +104,105 @@ describe('wrapMcpEndpointHandler', () => {
   })
 })
 
-describe('installOverrideAuth', () => {
+describe('installOverrideGetAuthorizedMCP', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   function makePayload(user: unknown = { id: 'user-1', email: 'a@b.com' }) {
     return {
       find: vi.fn().mockResolvedValue({ docs: [] }),
       findByID: vi.fn().mockResolvedValue(user),
+      auth: vi.fn().mockResolvedValue({ user }),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
     }
   }
 
-  it('sets overrideAuth on mcpPluginOptions', () => {
-    const opts = {} as Parameters<typeof installOverrideAuth>[0]
-    installOverrideAuth(opts, 'users')
-    expect(typeof opts.overrideAuth).toBe('function')
+  function pluginConfig(items: MCPItem[] = ALL_ITEMS) {
+    return { items, disabled: false } as never
+  }
+
+  it('sets overrideGetAuthorizedMCP on mcpPluginOptions', () => {
+    const opts = {} as Parameters<typeof installOverrideGetAuthorizedMCP>[0]
+    installOverrideGetAuthorizedMCP(opts, 'users')
+    expect(typeof opts.overrideGetAuthorizedMCP).toBe('function')
   })
 
-  it('delegates to getDefaultMcpAccessSettings for non-pmoauth tokens', async () => {
-    const opts = {} as Parameters<typeof installOverrideAuth>[0]
-    installOverrideAuth(opts, 'users')
-    const getDefault = vi.fn().mockResolvedValue({ user: { id: 'u1' } })
+  it('uses default Payload auth for non-pmoauth tokens', async () => {
+    const opts = {} as Parameters<typeof installOverrideGetAuthorizedMCP>[0]
+    installOverrideGetAuthorizedMCP(opts, 'users')
+    const user = { id: 'u1' }
+    const payload = makePayload(user)
     const req = {
-      headers: { get: vi.fn().mockReturnValue('Bearer api-key-abc123') },
-      payload: makePayload(),
+      headers: new Headers({ Authorization: 'users API-Key abc123' }),
+      payload,
+      user: null,
+      t: (k: string) => k,
     }
-    await opts.overrideAuth!(req as never, getDefault)
-    expect(getDefault).toHaveBeenCalledOnce()
+    const result = await opts.overrideGetAuthorizedMCP!({
+      overrideAccess: false,
+      pluginConfig: pluginConfig(),
+      req: req as never,
+    })
+    expect(payload.auth).toHaveBeenCalledOnce()
+    expect(req.user).toEqual(user)
+    expect(result.items).toEqual(ALL_ITEMS)
+    expect(result.overrideAccess).toBe(false)
   })
 
-  it('delegates to getDefaultMcpAccessSettings when no Authorization header', async () => {
-    const opts = {} as Parameters<typeof installOverrideAuth>[0]
-    installOverrideAuth(opts, 'users')
-    const getDefault = vi.fn().mockResolvedValue({ user: { id: 'u1' } })
+  it('uses default auth when no Authorization header', async () => {
+    const opts = {} as Parameters<typeof installOverrideGetAuthorizedMCP>[0]
+    installOverrideGetAuthorizedMCP(opts, 'users')
+    const payload = makePayload(null)
+    payload.auth = vi.fn().mockResolvedValue({ user: null })
     const req = {
-      headers: { get: vi.fn().mockReturnValue(null) },
-      payload: makePayload(),
+      headers: new Headers(),
+      payload,
+      user: null,
+      t: (k: string) => k,
     }
-    await opts.overrideAuth!(req as never, getDefault)
-    expect(getDefault).toHaveBeenCalledOnce()
+    const result = await opts.overrideGetAuthorizedMCP!({
+      overrideAccess: false,
+      pluginConfig: pluginConfig(),
+      req: req as never,
+    })
+    expect(payload.auth).toHaveBeenCalledOnce()
+    expect(result.items).toEqual(ALL_ITEMS)
   })
 
   it('throws OAuthInvalidTokenError for an unknown pmoauth_ token', async () => {
-    const opts = {} as Parameters<typeof installOverrideAuth>[0]
-    installOverrideAuth(opts, 'users')
-    // find returns no docs → validateAccessToken returns null
+    const opts = {} as Parameters<typeof installOverrideGetAuthorizedMCP>[0]
+    installOverrideGetAuthorizedMCP(opts, 'users')
     const payload = {
       find: vi.fn().mockResolvedValue({ docs: [] }),
       findByID: vi.fn(),
+      auth: vi.fn(),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
     }
     const req = {
-      headers: { get: vi.fn().mockReturnValue('Bearer pmoauth_at_unknowntoken12345678901234567890123') },
+      headers: new Headers({
+        Authorization: 'Bearer pmoauth_at_unknowntoken12345678901234567890123',
+      }),
       payload,
+      user: null,
     }
-    const getDefault = vi.fn()
-    await expect(opts.overrideAuth!(req as never, getDefault)).rejects.toThrow(OAuthInvalidTokenError)
-    expect(getDefault).not.toHaveBeenCalled()
+    await expect(
+      opts.overrideGetAuthorizedMCP!({
+        overrideAccess: false,
+        pluginConfig: pluginConfig(),
+        req: req as never,
+      }),
+    ).rejects.toThrow(OAuthInvalidTokenError)
+    expect(payload.auth).not.toHaveBeenCalled()
   })
 
-  it('returns MCPAccessSettings with capabilities derived from mcpPluginOptions when token stores none', async () => {
+  it('returns AuthorizedMCP with full items when token stores empty capabilities', async () => {
     const opts = {
       collections: {
-        users: { enabled: { find: true, create: false, update: true, delete: false } },
-        'oauth-clients': { enabled: true },
+        posts: {},
       },
-    } as Parameters<typeof installOverrideAuth>[0]
-    installOverrideAuth(opts, 'users')
+    } as Parameters<typeof installOverrideGetAuthorizedMCP>[0]
+    installOverrideGetAuthorizedMCP(opts, 'users')
 
     const tokenDoc = {
       id: 'tok-1',
@@ -157,23 +219,32 @@ describe('installOverrideAuth', () => {
       find: vi.fn().mockResolvedValue({ docs: [tokenDoc] }),
       findByID: vi.fn().mockResolvedValue({ id: 'user-1', email: 'a@b.com' }),
       update: vi.fn().mockResolvedValue({}),
+      auth: vi.fn(),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
     }
     const req = {
-      headers: { get: vi.fn().mockReturnValue('Bearer pmoauth_at_sometoken12345678901234567890123') },
+      headers: new Headers({
+        Authorization: 'Bearer pmoauth_at_sometoken12345678901234567890123',
+      }),
       payload,
+      user: null,
     }
-    const getDefault = vi.fn()
-    const result = await opts.overrideAuth!(req as never, getDefault)
+    const result = await opts.overrideGetAuthorizedMCP!({
+      overrideAccess: false,
+      pluginConfig: pluginConfig(),
+      req: req as never,
+    })
 
-    expect(result.user).toBeDefined()
-    expect((result as Record<string, unknown>).users).toEqual({ find: true, create: false, update: true, delete: false })
-    expect((result as Record<string, unknown>).oauthClients).toEqual({ find: true, create: true, update: true, delete: true })
-    expect(getDefault).not.toHaveBeenCalled()
+    expect(req.user).toBeDefined()
+    expect((req.user as Record<string, unknown>)['collection']).toBe('users')
+    expect((req.user as Record<string, unknown>)['_strategy']).toBe('local-jwt')
+    expect(result.items).toEqual(ALL_ITEMS)
+    expect(payload.auth).not.toHaveBeenCalled()
   })
 
-  it('sets user.collection and user._strategy on the returned user', async () => {
-    const opts = {} as Parameters<typeof installOverrideAuth>[0]
-    installOverrideAuth(opts, 'users')
+  it('narrows items when token stores scoped capabilities', async () => {
+    const opts = {} as Parameters<typeof installOverrideGetAuthorizedMCP>[0]
+    installOverrideGetAuthorizedMCP(opts, 'users')
 
     const tokenDoc = {
       id: 'tok-2',
@@ -181,8 +252,8 @@ describe('installOverrideAuth', () => {
       tokenType: 'access',
       userId: 'user-2',
       clientId: 'client-1',
-      scope: 'mcp',
-      capabilities: {},
+      scope: 'posts:read',
+      capabilities: { posts: { find: true } },
       expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
       revokedAt: null,
     }
@@ -190,14 +261,22 @@ describe('installOverrideAuth', () => {
       find: vi.fn().mockResolvedValue({ docs: [tokenDoc] }),
       findByID: vi.fn().mockResolvedValue({ id: 'user-2', email: 'b@c.com' }),
       update: vi.fn().mockResolvedValue({}),
+      auth: vi.fn(),
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
     }
     const req = {
-      headers: { get: vi.fn().mockReturnValue('Bearer pmoauth_at_anothertoken1234567890123456789012') },
+      headers: new Headers({
+        Authorization: 'Bearer pmoauth_at_anothertoken1234567890123456789012',
+      }),
       payload,
+      user: null,
     }
-    const result = await opts.overrideAuth!(req as never, vi.fn())
-    const u = result.user as Record<string, unknown>
-    expect(u['collection']).toBe('users')
-    expect(u['_strategy']).toBe('local-jwt')
+    const result = await opts.overrideGetAuthorizedMCP!({
+      overrideAccess: false,
+      pluginConfig: pluginConfig(),
+      req: req as never,
+    })
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]).toMatchObject({ configKey: 'find', collectionSlug: 'posts' })
   })
 })

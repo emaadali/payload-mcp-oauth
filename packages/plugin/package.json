@@ -1,6 +1,6 @@
 {
   "name": "@brainwebuk/payload-plugin-mcp-oauth",
-  "version": "0.3.6",
+  "version": "0.4.0-payload4.0",
   "license": "MIT",
   "author": {
     "name": "Richard Wood",
@@ -9,11 +9,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/BrainWeb/payload-mcp-oauth.git",
+    "url": "git+https://github.com/emaadali/payload-mcp-oauth.git",
     "directory": "packages/plugin"
   },
-  "homepage": "https://github.com/BrainWeb/payload-mcp-oauth/tree/main/packages/plugin#readme",
-  "bugs": "https://github.com/BrainWeb/payload-mcp-oauth/issues",
+  "homepage": "https://github.com/emaadali/payload-mcp-oauth/tree/main/packages/plugin#readme",
+  "bugs": "https://github.com/emaadali/payload-mcp-oauth/issues",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -46,8 +46,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "peerDependencies": {
-    "payload": "^3.0.0",
-    "@payloadcms/plugin-mcp": "^3.0.0",
+    "payload": ">=4.0.0-canary.0 || ^4.0.0",
+    "@payloadcms/plugin-mcp": ">=4.0.0-canary.0 || ^4.0.0",
     "next": "^14.0.0 || ^15.0.0 || ^16.0.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
@@ -58,8 +58,8 @@
     }
   },
   "devDependencies": {
-    "payload": "3.85.0",
-    "@payloadcms/plugin-mcp": "3.85.0",
+    "payload": "4.0.0-canary.16",
+    "@payloadcms/plugin-mcp": "4.0.0-canary.16",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "next": "16.2.6",

@@ -153,18 +153,18 @@ describe('buildPlugin — disabled / no-op', () => {
     expect(() => buildPlugin(makeConfig([]), makeOptions())).toThrow(PayloadMcpOAuthError)
   })
 
-  it('payloadMcpOAuth does NOT install overrideAuth when disabled', async () => {
+  it('payloadMcpOAuth does NOT install overrideGetAuthorizedMCP when disabled', async () => {
     const { payloadMcpOAuth } = await import('../../../src/index.js')
     const mcpOpts = {}
     payloadMcpOAuth(makeOptions({ disabled: true, mcpPluginOptions: mcpOpts }))
-    expect((mcpOpts as Record<string, unknown>)['overrideAuth']).toBeUndefined()
+    expect((mcpOpts as Record<string, unknown>)['overrideGetAuthorizedMCP']).toBeUndefined()
   })
 
-  it('payloadMcpOAuth does NOT install overrideAuth when the MCP plugin is disabled', async () => {
+  it('payloadMcpOAuth does NOT install overrideGetAuthorizedMCP when the MCP plugin is disabled', async () => {
     const { payloadMcpOAuth } = await import('../../../src/index.js')
     const mcpOpts = { disabled: true }
     payloadMcpOAuth(makeOptions({ mcpPluginOptions: mcpOpts as never }))
-    expect((mcpOpts as Record<string, unknown>)['overrideAuth']).toBeUndefined()
+    expect((mcpOpts as Record<string, unknown>)['overrideGetAuthorizedMCP']).toBeUndefined()
   })
 })
 
@@ -245,15 +245,15 @@ describe('buildPlugin — endpoints (T5.5)', () => {
   })
 })
 
-describe('payloadMcpOAuth — overrideAuth installation (T5.4)', () => {
-  it('sets overrideAuth on mcpPluginOptions eagerly (before plugin execution)', async () => {
-    // overrideAuth must be set during payloadMcpOAuth() call, not deferred to plugin execution,
-    // because Payload's definePlugin spreads mcpPluginOptions into a new object when it runs
-    // the plugin — so mutations applied after that point are invisible to the MCP handler closure.
+describe('payloadMcpOAuth — overrideGetAuthorizedMCP installation (T5.4)', () => {
+  it('sets overrideGetAuthorizedMCP on mcpPluginOptions eagerly (before plugin execution)', async () => {
+    // overrideGetAuthorizedMCP must be set during payloadMcpOAuth() call, not deferred to
+    // plugin execution, because Payload's MCP plugin sanitizes/spreads mcpPluginOptions
+    // when it runs — so mutations applied after that point are invisible.
     const { payloadMcpOAuth } = await import('../../../src/index.js')
     const mcpOpts = {}
     payloadMcpOAuth(makeOptions({ mcpPluginOptions: mcpOpts }))
-    expect(typeof (mcpOpts as Record<string, unknown>)['overrideAuth']).toBe('function')
+    expect(typeof (mcpOpts as Record<string, unknown>)['overrideGetAuthorizedMCP']).toBe('function')
   })
 })
 

@@ -1,4 +1,4 @@
-import type { TypedUser } from 'payload'
+import type { User } from 'payload'
 
 /**
  * Best-effort admin check for the standalone OAuth admin views.
@@ -13,7 +13,7 @@ import type { TypedUser } from 'payload'
  * stronger, configurable `adminAccess` rule (see PayloadMcpOAuthConfig). This
  * helper only backs the legacy standalone views.
  */
-export function isOAuthAdmin(user: TypedUser): boolean {
+export function isOAuthAdmin(user: User): boolean {
   const u = user as Record<string, unknown>
   if ('role' in u) return u['role'] === 'admin'
   if ('isAdmin' in u) return u['isAdmin'] === true

@@ -111,13 +111,13 @@ export const oauthTokensCollection: CollectionConfig = {
       admin: { readOnly: true },
     },
     {
-      // Stores the MCPAccessSettings shape (minus user) so we can reconstruct
-      // the full access settings at token validation time without a user lookup.
+      // Stores a camelCase-slug → CRUD ops map used to narrow sanitized MCP
+      // items at request time. Empty `{}` means full operator grant.
       name: 'capabilities',
       type: 'json',
       admin: {
         readOnly: true,
-        description: 'MCPAccessSettings-compatible capability flags granted at consent.',
+        description: 'OAuth capability flags (slug → find/create/update/delete) granted at consent.',
       },
     },
     {

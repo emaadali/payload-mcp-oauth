@@ -16,7 +16,7 @@ import { wrapMcpEndpointHandler } from './middleware/wrap-mcp.js'
 import { OAUTH_AS_METADATA_PATH, OAUTH_PRM_METADATA_PATH } from './lib/paths.js'
 import { PayloadMcpOAuthError } from './types.js'
 
-const SUPPORTED_MCP_RANGE = { min: [3, 0, 0], max: [3, 999, 999] } as const
+const SUPPORTED_MCP_RANGE = { min: [4, 0, 0], max: [4, 999, 999] } as const
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',

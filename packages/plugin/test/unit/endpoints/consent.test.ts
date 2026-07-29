@@ -6,7 +6,7 @@ import { makeCsrfToken } from '../../../src/lib/csrf.js'
 process.env['PMOAUTH_TOKEN_PEPPER'] = 'test-pepper-32-chars-minimum-length!!'
 
 const MCP_OPTIONS: MCPPluginConfig = {
-  collections: { posts: { enabled: true } },
+  collections: { posts: {} },
 }
 
 const REGISTERED_URI = 'https://example.com/cb'
